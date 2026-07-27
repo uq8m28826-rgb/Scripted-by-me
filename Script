@@ -1,0 +1,408 @@
+-- ============================================
+-- ELEGANCE TP - Save & Teleport Position
+-- Complete Single Script - Black & White Theme
+-- TOP RIGHT POSITION - MOBILE FRIENDLY
+-- WITH MINIMIZE BUTTON
+-- Place this LocalScript in StarterGui
+-- ============================================
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- Variables
+local savedPosition = nil
+local savedCFrame = nil
+local isMinimized = false
+
+-- ============================================
+-- CREATE UI (BLACK & WHITE THEME)
+-- ============================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "EleganceTP"
+screenGui.Parent = player.PlayerGui
+screenGui.ResetOnSpawn = false
+
+-- Main Frame (Black background)
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 260, 0, 160)
+frame.Position = UDim2.new(1, -270, 0, 10)  -- Top right corner
+frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+frame.BackgroundTransparency = 0
+frame.BorderSizePixel = 0
+frame.ClipsDescendants = true
+frame.Parent = screenGui
+
+-- Corner rounding
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 14)
+corner.Parent = frame
+
+-- Subtle border (white/gray)
+local border = Instance.new("UIStroke")
+border.Color = Color3.fromRGB(80, 80, 80)
+border.Thickness = 1.5
+border.Parent = frame
+
+-- ============================================
+-- TITLE BAR (Black & White)
+-- ============================================
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 40)
+titleBar.Position = UDim2.new(0, 0, 0, 0)
+titleBar.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+titleBar.BackgroundTransparency = 0
+titleBar.BorderSizePixel = 0
+titleBar.Parent = frame
+
+local titleBarCorner = Instance.new("UICorner")
+titleBarCorner.CornerRadius = UDim.new(0, 14)
+titleBarCorner.Parent = titleBar
+
+-- Title Label (White text)
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(0.6, 0, 1, 0)
+titleLabel.Position = UDim2.new(0, 12, 0, 0)
+titleLabel.Text = "⬛ ELEGANCE TP"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White
+titleLabel.BackgroundTransparency = 1
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 14
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = titleBar
+
+-- ============================================
+-- MINIMIZE BUTTON (White text)
+-- ============================================
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Size = UDim2.new(0, 30, 0, 30)
+minimizeButton.Position = UDim2.new(1, -35, 0, 5)
+minimizeButton.Text = "−"
+minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White
+minimizeButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.TextSize = 20
+minimizeButton.BorderSizePixel = 0
+minimizeButton.Parent = titleBar
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 6)
+minCorner.Parent = minimizeButton
+
+-- Minimize button hover effects
+minimizeButton.MouseEnter:Connect(function()
+    minimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+end)
+minimizeButton.MouseLeave:Connect(function()
+    minimizeButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+end)
+
+-- Drag hint (white/gray)
+local dragHint = Instance.new("TextLabel")
+dragHint.Size = UDim2.new(0, 25, 1, 0)
+dragHint.Position = UDim2.new(1, -65, 0, 0)
+dragHint.Text = "⠿"
+dragHint.TextColor3 = Color3.fromRGB(80, 80, 80)  -- Gray
+dragHint.BackgroundTransparency = 1
+dragHint.Font = Enum.Font.Gotham
+dragHint.TextSize = 14
+dragHint.TextXAlignment = Enum.TextXAlignment.Center
+dragHint.Parent = titleBar
+
+-- ============================================
+-- CONTENT FRAME (Black)
+-- ============================================
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, 0, 1, -40)
+contentFrame.Position = UDim2.new(0, 0, 0, 40)
+contentFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+contentFrame.BackgroundTransparency = 0
+contentFrame.BorderSizePixel = 0
+contentFrame.ClipsDescendants = true
+contentFrame.Parent = frame
+
+-- Subtitle / Status Label (White text)
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -20, 0, 22)
+statusLabel.Position = UDim2.new(0, 10, 0, 6)
+statusLabel.Text = "📍 No position saved"
+statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)  -- Light gray
+statusLabel.BackgroundTransparency = 1
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 12
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Parent = contentFrame
+
+-- Line Separator (Gray)
+local line = Instance.new("Frame")
+line.Size = UDim2.new(0.9, 0, 0, 1)
+line.Position = UDim2.new(0.05, 0, 0, 32)
+line.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+line.BorderSizePixel = 0
+line.Parent = contentFrame
+
+-- Save Button (Black & White)
+local saveButton = Instance.new("TextButton")
+saveButton.Size = UDim2.new(0, 105, 0, 38)
+saveButton.Position = UDim2.new(0, 12, 0, 40)
+saveButton.Text = "💾 Save"
+saveButton.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White
+saveButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+saveButton.Font = Enum.Font.GothamBold
+saveButton.TextSize = 14
+saveButton.Parent = contentFrame
+
+local saveCorner = Instance.new("UICorner")
+saveCorner.CornerRadius = UDim.new(0, 8)
+saveCorner.Parent = saveButton
+
+local saveStroke = Instance.new("UIStroke")
+saveStroke.Color = Color3.fromRGB(80, 80, 80)  -- Gray border
+saveStroke.Thickness = 1
+saveStroke.Parent = saveButton
+
+-- Teleport Button (Black & White)
+local teleportButton = Instance.new("TextButton")
+teleportButton.Size = UDim2.new(0, 105, 0, 38)
+teleportButton.Position = UDim2.new(1, -117, 0, 40)
+teleportButton.Text = "🚀 Teleport"
+teleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White
+teleportButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+teleportButton.Font = Enum.Font.GothamBold
+teleportButton.TextSize = 14
+teleportButton.Parent = contentFrame
+
+local teleportCorner = Instance.new("UICorner")
+teleportCorner.CornerRadius = UDim.new(0, 8)
+teleportCorner.Parent = teleportButton
+
+local teleportStroke = Instance.new("UIStroke")
+teleportStroke.Color = Color3.fromRGB(80, 80, 80)  -- Gray border
+teleportStroke.Thickness = 1
+teleportStroke.Parent = teleportButton
+
+-- Keyboard shortcut hint (Gray text)
+local hintLabel = Instance.new("TextLabel")
+hintLabel.Size = UDim2.new(1, 0, 0, 18)
+hintLabel.Position = UDim2.new(0, 0, 0, 82)
+hintLabel.Text = "P: Save  •  T: Teleport"
+hintLabel.TextColor3 = Color3.fromRGB(100, 100, 110)  -- Dark gray
+hintLabel.BackgroundTransparency = 1
+hintLabel.Font = Enum.Font.Gotham
+hintLabel.TextSize = 11
+hintLabel.Parent = contentFrame
+
+-- ============================================
+-- DRAGGABLE FUNCTIONALITY
+-- ============================================
+
+local dragging = false
+local dragStart = nil
+local dragStartX = 0
+local dragStartY = 0
+local userInputService = game:GetService("UserInputService")
+
+-- Mouse/Touch down on the frame (starts drag)
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+       input.UserInputType == Enum.UserInputType.Touch then
+        
+        -- Don't drag if clicking on buttons
+        if input.Target:IsA("TextButton") then
+            return
+        end
+        
+        dragging = true
+        dragStart = input.Position
+        dragStartX = frame.Position.X.Offset
+        dragStartY = frame.Position.Y.Offset
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+-- Track mouse/touch movement
+local function onInputChanged(input)
+    if not dragging then return end
+    
+    if input.UserInputType == Enum.UserInputType.MouseMovement or 
+       input.UserInputType == Enum.UserInputType.Touch then
+        
+        local delta = input.Position - dragStart
+        
+        frame.Position = UDim2.new(
+            0,
+            dragStartX + delta.X,
+            0,
+            dragStartY + delta.Y
+        )
+    end
+end
+
+userInputService.InputChanged:Connect(onInputChanged)
+
+-- Also handle touch movement separately for mobile
+userInputService.TouchMoved:Connect(function(touch)
+    if not dragging then return end
+    
+    local delta = touch.Position - dragStart
+    frame.Position = UDim2.new(
+        0,
+        dragStartX + delta.X,
+        0,
+        dragStartY + delta.Y
+    )
+end)
+
+-- Stop dragging when mouse/touch is released
+userInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+       input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+-- ============================================
+-- MINIMIZE FUNCTION
+-- ============================================
+local function minimizeGUI()
+    isMinimized = not isMinimized
+    
+    if isMinimized then
+        contentFrame.Visible = false
+        frame.Size = UDim2.new(0, 260, 0, 40)
+        minimizeButton.Text = "+"
+        statusLabel.Text = "📎 Minimized"
+        statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    else
+        contentFrame.Visible = true
+        frame.Size = UDim2.new(0, 260, 0, 160)
+        minimizeButton.Text = "−"
+        if savedPosition then
+            local pos = savedPosition
+            statusLabel.Text = string.format("✅ Saved at (%.1f, %.1f, %.1f)", pos.X, pos.Y, pos.Z)
+            statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        else
+            statusLabel.Text = "📍 No position saved"
+            statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        end
+    end
+end
+
+-- Connect minimize button
+minimizeButton.MouseButton1Click:Connect(minimizeGUI)
+minimizeButton.TouchTap:Connect(minimizeGUI)
+
+-- ============================================
+-- FUNCTIONS
+-- ============================================
+
+-- Update status label
+local function updateStatus(text, color)
+    if not isMinimized then
+        statusLabel.Text = text
+        if color then
+            statusLabel.TextColor3 = color
+        else
+            statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        end
+    end
+end
+
+-- Save Position
+local function savePosition()
+    if not character or not humanoidRootPart then
+        updateStatus("❌ Character not found!", Color3.fromRGB(255, 80, 80))
+        return
+    end
+    
+    savedPosition = humanoidRootPart.Position
+    savedCFrame = humanoidRootPart.CFrame
+    
+    local pos = savedPosition
+    updateStatus(string.format("✅ Saved at (%.1f, %.1f, %.1f)", pos.X, pos.Y, pos.Z), Color3.fromRGB(200, 255, 200))
+    
+    -- Visual feedback on button (white flash)
+    saveButton.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    saveButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    task.wait(0.15)
+    saveButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    saveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+end
+
+-- Teleport to saved position
+local function teleportToSaved()
+    if not savedPosition then
+        updateStatus("⚠️ No position saved!", Color3.fromRGB(255, 200, 50))
+        return
+    end
+    
+    if not character or not humanoidRootPart then
+        updateStatus("❌ Character not found!", Color3.fromRGB(255, 80, 80))
+        return
+    end
+    
+    -- Teleport
+    humanoidRootPart.CFrame = savedCFrame or CFrame.new(savedPosition)
+    
+    local pos = savedPosition
+    updateStatus(string.format("🚀 Teleported to (%.1f, %.1f, %.1f)", pos.X, pos.Y, pos.Z), Color3.fromRGB(200, 255, 255))
+    
+    -- Visual feedback on button (white flash)
+    teleportButton.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    teleportButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    task.wait(0.15)
+    teleportButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    teleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+end
+
+-- ============================================
+-- BUTTON CONNECTIONS
+-- ============================================
+saveButton.MouseButton1Click:Connect(savePosition)
+teleportButton.MouseButton1Click:Connect(teleportToSaved)
+
+-- Touch support for mobile
+saveButton.TouchTap:Connect(savePosition)
+teleportButton.TouchTap:Connect(teleportToSaved)
+
+-- ============================================
+-- KEYBOARD SHORTCUTS
+-- ============================================
+userInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.P then
+        savePosition()
+    elseif input.KeyCode == Enum.KeyCode.T then
+        teleportToSaved()
+    elseif input.KeyCode == Enum.KeyCode.M then
+        minimizeGUI()
+    end
+end)
+
+-- ============================================
+-- HANDLE CHARACTER RESPAWN
+-- ============================================
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    if not isMinimized then
+        updateStatus("🔄 Respawned. Position saved.", Color3.fromRGB(200, 200, 200))
+    end
+end)
+
+-- ============================================
+-- INITIAL STATUS
+-- ============================================
+updateStatus("💡 Drag anywhere to move • P: Save • T: Teleport", Color3.fromRGB(200, 200, 200))
+print("⬛ Elegance TP loaded! (Black & White Theme)")
+print("📌 GUI appears in the TOP RIGHT corner")
+print("📌 Click − to minimize")
+print("📌 P = Save Position")
+print("📌 T = Teleport to Saved")
+print("📌 M = Minimize/Restore")
